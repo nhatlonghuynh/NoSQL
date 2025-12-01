@@ -72,7 +72,7 @@
     <h5>Thông tin tài chính</h5>
     <div class="row">
       <div class="col-md-3 mb-3">
-        <label class="form-label">COD Amount</label>
+        <label class="form-label">Tiền Thu Hộ (COD)</label>
         <input type="number" name="cod_amount" min="0" class="form-control" value="{{ order.financials.cod_amount if order else 0 }}">
       </div>
       <div class="col-md-3 mb-3">
@@ -99,8 +99,8 @@
       </select>
     </div>
 
-    <button type="submit" class="btn btn-success">Save</button>
-    <a href="/orders" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="btn btn-success">Lưu</button>
+    <a href="/orders" class="btn btn-secondary">Hủy</a>
   </form>
 </div>
 

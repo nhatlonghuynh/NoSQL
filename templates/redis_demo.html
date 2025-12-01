@@ -2,8 +2,8 @@
 
 <div class="container py-5">
   <div class="d-flex align-items-center mb-4">
-    <h2 class="text-danger fw-bold me-3">Redis Power Features Demo</h2>
-    <span class="badge bg-danger fs-6">LIVE • Real-time</span>
+    <h2 class="text-danger fw-bold me-3">Demo Tính Năng Redis Nâng Cao</h2>
+    <span class="badge bg-danger fs-6">LIVE • Thời Gian Thực</span>
   </div>
 
   <div class="row g-4">
@@ -13,7 +13,7 @@
         <div
           class="card-header bg-primary text-white d-flex justify-content-between align-items-center"
         >
-          <h5 class="mb-0">Geo Search – Bưu cục gần nhất</h5>
+          <h5 class="mb-0">Tìm Kiếm Địa Lý – Bưu Cục Gần Nhất</h5>
           <small>Redis GEO</small>
         </div>
         <div class="card-body d-flex flex-column">
@@ -26,7 +26,7 @@
             class="mb-3 flex-grow-1"
           ></div>
           <button class="btn btn-primary btn-lg" onclick="loadNearby()">
-            Quét khu vực xung quanh
+            Quét Khu Vực Xung Quanh
           </button>
         </div>
       </div>
@@ -41,11 +41,11 @@
           <h5 class="mb-0">
             Top Shipper Thu COD Tháng <span id="current-month">...</span>
           </h5>
-          <small>Redis ZSET • Real-time</small>
+          <small>Redis ZSET • Thời Gian Thực</small>
         </div>
         <div class="card-body">
           <div class="input-group mb-3">
-            <span class="input-group-text">Mã shipper</span>
+            <span class="input-group-text">Mã Shipper</span>
             <input
               type="text"
               id="shipper-code"
@@ -60,7 +60,7 @@
               +500k
             </button>
             <button class="btn btn-danger" onclick="addMoney(1000000)">
-              +1 triệu
+              +1 Triệu
             </button>
           </div>
 
@@ -70,7 +70,7 @@
                 <tr>
                   <th style="width: 60px">#</th>
                   <th>Shipper</th>
-                  <th class="text-end">Doanh số COD</th>
+                  <th class="text-end">Doanh Số COD</th>
                 </tr>
               </thead>
               <tbody id="leaderboard-body"></tbody>
@@ -78,7 +78,7 @@
           </div>
 
           <div class="text-center mt-3">
-            <small class="text-muted">Cập nhật tự động mỗi 3 giây</small>
+            <small class="text-muted">Cập Nhật Tự Động Mỗi 3 Giây</small>
           </div>
         </div>
       </div>
@@ -90,7 +90,7 @@
         <div
           class="card-header bg-warning text-dark d-flex justify-content-between align-items-center"
         >
-          <h5 class="mb-0">Lịch sử xem đơn (capped)</h5>
+          <h5 class="mb-0">Lịch Sử Xem Đơn (Giới Hạn)</h5>
           <small>Redis LIST + LTRIM</small>
         </div>
         <div class="card-body">
@@ -98,7 +98,7 @@
             class="btn btn-outline-dark w-100 mb-3"
             onclick="pushRandomOrder()"
           >
-            Xem đơn ngẫu nhiên
+            Xem Đơn Ngẫu Nhiên
           </button>
           <ul class="list-group list-group-flush" id="history-list"></ul>
         </div>
@@ -120,7 +120,7 @@
               type="text"
               id="notif-msg"
               class="form-control"
-              placeholder="Nhập nội dung thông báo..."
+              placeholder="Nhập Nội Dung Thông Báo..."
             />
             <button
               class="btn btn-info text-white"
@@ -136,10 +136,10 @@
             role="alert"
             style="display: none"
           >
-            <strong>Thông báo mới:</strong> <span id="toast-body"></span>
+            <strong>Thông Báo Mới:</strong> <span id="toast-body"></span>
           </div>
 
-          <h6 class="mt-4 text-muted">Lịch sử thông báo</h6>
+          <h6 class="mt-4 text-muted">Lịch Sử Thông Báo</h6>
           <ul class="list-group list-group-flush small" id="notif-list"></ul>
         </div>
       </div>
@@ -155,7 +155,7 @@
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <script>
-  // Tự động hiển thị tháng hiện tại
+  // Tự Động Hiển Thị Tháng Hiện Tại
   document.getElementById("current-month").textContent = new Date()
     .toLocaleDateString("vi-VN", {
       month: "numeric",
@@ -174,7 +174,7 @@
     markers.clearLayers();
     L.marker([10.7721, 106.6983])
       .addTo(markers)
-      .bindPopup("Bạn đang ở đây")
+      .bindPopup("Bạn Đang Ở Đây")
       .openPopup();
     data.forEach((p) => {
       L.circleMarker([p.lat, p.lng], {
@@ -183,7 +183,7 @@
         fillOpacity: 0.9,
       })
         .addTo(markers)
-        .bindPopup(`<b>${p.name}</b><br>Khoảng cách: ${p.distance_km} km`);
+        .bindPopup(`<b>${p.name}</b><br>Khoảng Cách: ${p.distance_km} km`);
     });
   }
 

@@ -1,12 +1,12 @@
 {% extends "layout.html" %} {% block content %}
-<h3>Shippers</h3>
+<h3>Nhân Viên Giao Hàng</h3>
 <div class="row">
   <div class="col-md-4 mb-3">
     <input
       type="text"
       id="search-input"
       class="form-control mb-2"
-      placeholder="Search shippers by name/phone..."
+      placeholder="Tìm Shipper Theo Tên/SĐT..."
     />
     <ul class="list-group" id="shipper-list">
       {% for s in shippers %}

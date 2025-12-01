@@ -1,5 +1,5 @@
 {% extends "layout.html" %} {% block content %}
-<h3>Track Order</h3>
+<h3>Theo Dõi Vận Đơn</h3>
 
 <!-- Search Form -->
 <form class="mb-3" action="/track" method="get">
@@ -7,10 +7,10 @@
     <input
       name="code"
       class="form-control"
-      placeholder="Enter tracking code"
+      placeholder="Nhập mã vận đơn"
       value="{{ code or '' }}"
     />
-    <button class="btn btn-primary">Search</button>
+    <button class="btn btn-primary">Tìm Kiếm</button>
   </div>
 </form>
 
@@ -19,26 +19,26 @@
   <div class="col-md-6">
     <!-- Order Info -->
     <div class="card mb-3 p-3">
-      <h5>Order {{ order.order_code }}</h5>
+      <h5>Vận Đơn {{ order.order_code }}</h5>
       <p>
-        <strong>Recipient:</strong>
+        <strong>Người Nhận:</strong>
         {{ order.recipient_info.name if order.recipient_info else 'N/A' }} ({{
         order.recipient_info.phone if order.recipient_info else 'N/A' }})
       </p>
       <p>
-        <strong>Address:</strong>
+        <strong>Địa Chỉ:</strong>
         {{ order.recipient_info.address if order.recipient_info else 'N/A' }}
       </p>
       <p>
-        <strong>Service:</strong>
+        <strong>Dịch Vụ:</strong>
         {{ order.service.name if order.service else 'N/A' }}
       </p>
-      <p><strong>Status:</strong> {{ order.current_status or 'N/A' }}</p>
+      <p><strong>Trạng Thái:</strong> {{ order.current_status or 'N/A' }}</p>
     </div>
 
     <!-- Shipment Timeline -->
     {% if shipment and shipment.status_history %}
-    <h5>Shipment Timeline</h5>
+    <h5>Lịch Sử Vận Chuyển</h5>
     <ul class="list-group timeline-list">
       {% for s in shipment.status_history %}
       <li class="list-group-item">
@@ -51,13 +51,15 @@
       {% endfor %}
     </ul>
     {% else %}
-    <div class="alert alert-warning">No shipment found for this order.</div>
+    <div class="alert alert-warning">
+      Không tìm thấy lịch sử vận chuyển cho vận đơn này.
+    </div>
     {% endif %}
   </div>
 
   <div class="col-md-6">
     <!-- Map showing shipment / shipper location -->
-    <h5>Shipment Map</h5>
+    <h5>Bản Đồ Vân Chuyển</h5>
     <div id="map" style="height: 400px; border-radius: 10px"></div>
   </div>
 </div>
@@ -78,7 +80,7 @@
     {{ shipment.current_location.coordinates[0] }}
   ];
   const marker = L.marker(coords).addTo(map)
-    .bindPopup(`<b>Shipment {{ order.order_code }}</b><br>Current Status: {{ order.current_status }}`).openPopup();
+    .bindPopup(`<b>Vận Chuyển {{ order.order_code }}</b><br>Trạng Thái Hiện Tại: {{ order.current_status }}`).openPopup();
   map.setView(coords, 14);
   {% endif %}
 
@@ -98,7 +100,9 @@
 </script>
 
 {% else %}
-<div class="alert alert-info">Enter a tracking code to search.</div>
+<div class="alert alert-info">
+  Vui lòng nhập mã vận đơn để tra cứu thông tin.
+</div>
 {% endif %}
 
 <style>

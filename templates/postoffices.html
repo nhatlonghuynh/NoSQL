@@ -220,7 +220,7 @@
           >
             Đóng
           </button>
-          <button type="submit" class="btn btn-primary">Lưu dữ liệu</button>
+          <button type="submit" class="btn btn-primary">Lưu Dữ Liệu</button>
         </div>
       </form>
     </div>
@@ -303,12 +303,12 @@
     const title = document.getElementById("modalTitle");
 
     if (mode === "create") {
-      title.innerText = "Thêm Bưu cục Mới";
+      title.innerText = "Thêm Bưu Cục Mới";
       form.action = "/postoffices/create";
       form.reset();
       document.getElementById("field_oid").value = "";
     } else {
-      title.innerText = "Chỉnh sửa Bưu cục";
+      title.innerText = "Chỉnh Sửa Bưu Cục";
       form.action = "/postoffices/update";
 
       // Điền dữ liệu vào form
