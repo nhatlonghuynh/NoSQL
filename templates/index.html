@@ -1,0 +1,192 @@
+{% extends "layout.html" %} {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container-fluid mt-3">
+  <div class="row mb-4">
+    <div class="col-md-6 mb-3">
+      <div class="card shadow-sm border-start border-primary border-4 h-100">
+        <div
+          class="card-body d-flex align-items-center justify-content-between"
+        >
+          <div>
+            <h6 class="text-muted text-uppercase fw-bold mb-1">Total Orders</h6>
+            <h2 class="mb-0 text-primary">{{ total_orders }}</h2>
+          </div>
+          <div class="icon-shape bg-primary text-white rounded-circle p-3">
+            <i class="bi bi-box-seam fs-3"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <div class="card shadow-sm border-start border-success border-4 h-100">
+        <div
+          class="card-body d-flex align-items-center justify-content-between"
+        >
+          <div>
+            <h6 class="text-muted text-uppercase fw-bold mb-1">
+              Total COD Collected
+            </h6>
+            <h2 class="mb-0 text-success">
+              {{ "{:,.0f}".format(cod_total) }} đ
+            </h2>
+          </div>
+          <div class="icon-shape bg-success text-white rounded-circle p-3">
+            <i class="bi bi-cash-coin fs-3"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-lg-8 mb-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white py-3">
+          <h5 class="mb-0">Orders by Status</h5>
+        </div>
+        <div class="card-body">
+          <div style="height: 300px; position: relative">
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 mb-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-primary text-white py-3">
+          <h5 class="mb-0"><i class="bi bi-search"></i> Quick Track</h5>
+        </div>
+        <div class="card-body d-flex flex-column justify-content-center">
+          <p class="text-muted">
+            Nhập mã vận đơn để kiểm tra hành trình ngay lập tức.
+          </p>
+          <form action="/track">
+            <div class="mb-3">
+              <input
+                name="code"
+                class="form-control form-control-lg"
+                placeholder="Ex: VT2023..."
+                required
+              />
+            </div>
+            <button class="btn btn-primary w-100 btn-lg">Track Order</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div
+          class="card-header bg-white py-3 d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">Recent Orders</h5>
+          <a href="/orders" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-4">Order Code</th>
+                  <th>Sender</th>
+                  <th>Recipient</th>
+                  <th>Status</th>
+                  <th>COD Amount</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for order in recent_orders %}
+                <tr>
+                  <td class="ps-4">
+                    <a
+                      href="/track?code={{ order.order_code }}"
+                      class="fw-bold text-decoration-none"
+                    >
+                      {{ order.order_code }}
+                    </a>
+                  </td>
+                  <td>
+                    {{ order.sender_info.name if order.sender_info else 'N/A' }}
+                  </td>
+                  <td>
+                    {{ order.recipient_info.name if order.recipient_info else
+                    'N/A' }}<br />
+                    <small class="text-muted"
+                      >{{ order.recipient_info.phone }}</small
+                    >
+                  </td>
+                  <td>
+                    {% set st = order.current_status %}
+                    <span
+                      class="badge rounded-pill {% if st == 'DELIVERED' %}bg-success {% elif st == 'CANCELLED' %}bg-danger {% elif st == 'IN_TRANSIT' %}bg-info {% else %}bg-secondary{% endif %}"
+                    >
+                      {{ st }}
+                    </span>
+                  </td>
+                  <td class="fw-bold text-dark">
+                    {{ "{:,.0f}".format(order.financials.cod_amount |
+                    default(0)) }} đ
+                  </td>
+                  <td class="text-muted small">
+                    {{ order.created_at.strftime('%Y-%m-%d %H:%M') if
+                    order.created_at else '' }}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Chart Logic
+  const ordersByStatus = {{ orders_by_status|tojson }};
+  const labels = ordersByStatus.map(x => x._id || 'UNKNOWN');
+  const data = ordersByStatus.map(x => x.count);
+
+  // Màu sắc đẹp hơn
+  const bgColors = [
+    'rgba(54, 162, 235, 0.7)',  // Blue
+    'rgba(75, 192, 192, 0.7)',  // Green
+    'rgba(255, 206, 86, 0.7)',  // Yellow
+    'rgba(255, 99, 132, 0.7)',  // Red
+    'rgba(153, 102, 255, 0.7)', // Purple
+    'rgba(201, 203, 207, 0.7)'  // Grey
+  ];
+
+  new Chart(document.getElementById('statusChart'), {
+    type: 'bar', // Có thể đổi thành 'doughnut' hoặc 'pie' nếu thích
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Number of Orders',
+        data: data,
+        backgroundColor: bgColors.slice(0, data.length),
+        borderColor: bgColors.slice(0, data.length).map(c => c.replace('0.7', '1')),
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false, // Để chart tự co giãn theo div cha
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+</script>
+{% endblock %}

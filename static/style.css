@@ -1,0 +1,333 @@
+:root {
+  --vtp-primary: #dc3545;
+  --vtp-primary-dark: #bb2d3b;
+  --vtp-primary-light: #e35d6a;
+  --vtp-secondary: #0d6efd;
+  --vtp-accent: #ffc107;
+  --vtp-dark: #212529;
+  --vtp-light: #f8f9fa;
+  --vtp-border: #dee2e6;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  padding-top: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+}
+
+/* --- NAVBAR --- */
+.navbar {
+  background: linear-gradient(
+    135deg,
+    var(--vtp-primary) 0%,
+    var(--vtp-primary-dark) 100%
+  ) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: 0.5px;
+  transition: transform 0.3s ease;
+}
+
+.navbar-brand:hover {
+  transform: scale(1.05);
+}
+
+.nav-link {
+  position: relative;
+  font-weight: 500;
+  padding: 0.5rem 1rem !important;
+  margin: 0 0.25rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: white;
+  transform: translateX(-50%);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 80%;
+}
+
+/* --- LAYOUT & ANIMATION --- */
+main.container {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- MAP STYLING --- */
+#map {
+  height: 600px; /* Đã gộp: ưu tiên chiều cao lớn hơn */
+  width: 100%;
+  border-radius: 15px; /* Ưu tiên bo góc đẹp hơn */
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+#map:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  #map {
+    height: 350px;
+  }
+}
+
+/* --- CARDS --- */
+.card {
+  border: none;
+  border-radius: 12px; /* Đã gộp */
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  background: white;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+  background: linear-gradient(
+    135deg,
+    var(--vtp-primary) 0%,
+    var(--vtp-primary-light) 100%
+  );
+  color: white;
+  font-weight: 600;
+  border: none;
+  padding: 1.25rem;
+}
+
+/* --- BUTTONS (GENERAL) --- */
+.btn {
+  border-radius: 10px;
+  padding: 0.625rem 1.5rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-primary {
+  background: linear-gradient(
+    135deg,
+    var(--vtp-primary) 0%,
+    var(--vtp-primary-dark) 100%
+  );
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(220, 53, 69, 0.3);
+}
+
+/* --- ACTION BUTTONS (EDIT/DELETE) --- */
+.btn-action {
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+}
+
+.table-hover tbody tr:hover .btn-action {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Action: Nút Sửa */
+.btn-primary.btn-action {
+  background-color: #0d6efd;
+  border: none;
+}
+.btn-primary.btn-action:hover {
+  background-color: #0b5ed7;
+  transform: translateY(-2px);
+}
+
+/* Action: Nút Xóa */
+.btn-danger.btn-action {
+  background-color: #dc3545;
+  border: none;
+  opacity: 0.9;
+}
+.btn-danger.btn-action:hover {
+  background-color: #bb2d3b;
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+/* --- TABLES --- */
+.table {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.table thead {
+  background: linear-gradient(
+    135deg,
+    var(--vtp-primary) 0%,
+    var(--vtp-primary-light) 100%
+  );
+  color: white;
+}
+
+.table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f8f9fa;
+  cursor: default;
+  transform: scale(1.005); /* Giảm scale nhẹ để đỡ giật */
+}
+
+/* --- FORMS --- */
+.form-control,
+.form-select {
+  border-radius: 10px;
+  border: 2px solid var(--vtp-border);
+  padding: 0.75rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #86b7fe; /* Đã gộp màu focus */
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Quick Status Select */
+.status-select {
+  font-size: 0.85rem;
+  padding: 0.25rem 2rem 0.25rem 0.75rem;
+  border-radius: 50rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+/* --- BADGES & ALERTS --- */
+.badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 0.85em; /* Đã gộp */
+}
+
+.alert {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* --- TIMELINE --- */
+.timeline-list {
+  position: relative;
+  padding-left: 20px;
+  border-left: 2px solid #007bff;
+}
+.timeline-list li {
+  position: relative;
+  margin-bottom: 1rem;
+}
+.timeline-list li::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 5px;
+  width: 12px;
+  height: 12px;
+  background: #007bff;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+/* --- UTILITIES --- */
+.spinner-border {
+  border-width: 3px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vtp-primary);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vtp-primary-dark);
+}

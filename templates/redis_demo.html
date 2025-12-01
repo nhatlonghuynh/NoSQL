@@ -1,0 +1,305 @@
+{% extends "layout.html" %} {% block content %}
+
+<div class="container py-5">
+  <div class="d-flex align-items-center mb-4">
+    <h2 class="text-danger fw-bold me-3">Redis Power Features Demo</h2>
+    <span class="badge bg-danger fs-6">LIVE • Real-time</span>
+  </div>
+
+  <div class="row g-4">
+    <!-- 1. GEO SPATIAL -->
+    <div class="col-lg-6">
+      <div class="card h-100 shadow-sm border-primary">
+        <div
+          class="card-header bg-primary text-white d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">Geo Search – Bưu cục gần nhất</h5>
+          <small>Redis GEO</small>
+        </div>
+        <div class="card-body d-flex flex-column">
+          <p class="text-muted small mb-3">
+            Tìm bưu cục trong bán kính <strong>5km</strong> từ Chợ Bến Thành
+          </p>
+          <div
+            id="map"
+            style="height: 350px; border-radius: 8px"
+            class="mb-3 flex-grow-1"
+          ></div>
+          <button class="btn btn-primary btn-lg" onclick="loadNearby()">
+            Quét khu vực xung quanh
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. LEADERBOARD COD -->
+    <div class="col-lg-6">
+      <div class="card h-100 shadow-sm border-success">
+        <div
+          class="card-header bg-success text-white d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">
+            Top Shipper Thu COD Tháng <span id="current-month">...</span>
+          </h5>
+          <small>Redis ZSET • Real-time</small>
+        </div>
+        <div class="card-body">
+          <div class="input-group mb-3">
+            <span class="input-group-text">Mã shipper</span>
+            <input
+              type="text"
+              id="shipper-code"
+              class="form-control"
+              placeholder="VD: SHP001"
+              value="SHP001"
+            />
+            <button class="btn btn-outline-success" onclick="addMoney(100000)">
+              +100k
+            </button>
+            <button class="btn btn-success" onclick="addMoney(500000)">
+              +500k
+            </button>
+            <button class="btn btn-danger" onclick="addMoney(1000000)">
+              +1 triệu
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 60px">#</th>
+                  <th>Shipper</th>
+                  <th class="text-end">Doanh số COD</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-body"></tbody>
+            </table>
+          </div>
+
+          <div class="text-center mt-3">
+            <small class="text-muted">Cập nhật tự động mỗi 3 giây</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. RECENT HISTORY -->
+    <div class="col-lg-6">
+      <div class="card h-100 shadow-sm border-warning">
+        <div
+          class="card-header bg-warning text-dark d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">Lịch sử xem đơn (capped)</h5>
+          <small>Redis LIST + LTRIM</small>
+        </div>
+        <div class="card-body">
+          <button
+            class="btn btn-outline-dark w-100 mb-3"
+            onclick="pushRandomOrder()"
+          >
+            Xem đơn ngẫu nhiên
+          </button>
+          <ul class="list-group list-group-flush" id="history-list"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. NOTIFICATIONS -->
+    <div class="col-lg-6">
+      <div class="card h-100 shadow-sm border-info">
+        <div
+          class="card-header bg-info text-white d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">Thông báo Real-time</h5>
+          <small>Redis Pub/Sub</small>
+        </div>
+        <div class="card-body">
+          <div class="input-group mb-3">
+            <input
+              type="text"
+              id="notif-msg"
+              class="form-control"
+              placeholder="Nhập nội dung thông báo..."
+            />
+            <button
+              class="btn btn-info text-white"
+              onclick="sendNotification()"
+            >
+              Gửi
+            </button>
+          </div>
+
+          <div
+            class="alert alert-success alert-dismissible fade"
+            id="live-toast"
+            role="alert"
+            style="display: none"
+          >
+            <strong>Thông báo mới:</strong> <span id="toast-body"></span>
+          </div>
+
+          <h6 class="mt-4 text-muted">Lịch sử thông báo</h6>
+          <ul class="list-group list-group-flush small" id="notif-list"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script>
+  // Tự động hiển thị tháng hiện tại
+  document.getElementById("current-month").textContent = new Date()
+    .toLocaleDateString("vi-VN", {
+      month: "numeric",
+      year: "numeric",
+    })
+    .replace(" ", "/");
+
+  // === GEO ===
+  const map = L.map("map").setView([10.7721, 106.6983], 13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+  const markers = L.layerGroup().addTo(map);
+
+  async function loadNearby() {
+    const res = await fetch("/redis/geo/nearby?lat=10.7721&lng=106.6983&km=5");
+    const data = await res.json();
+    markers.clearLayers();
+    L.marker([10.7721, 106.6983])
+      .addTo(markers)
+      .bindPopup("Bạn đang ở đây")
+      .openPopup();
+    data.forEach((p) => {
+      L.circleMarker([p.lat, p.lng], {
+        color: "#d9534f",
+        radius: 8,
+        fillOpacity: 0.9,
+      })
+        .addTo(markers)
+        .bindPopup(`<b>${p.name}</b><br>Khoảng cách: ${p.distance_km} km`);
+    });
+  }
+
+  // === LEADERBOARD ===
+  const fmt = new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  });
+  async function loadLeaderboard() {
+    const res = await fetch("/redis/leaderboard/top?n=10");
+    const data = await res.json();
+    const tbody = document.getElementById("leaderboard-body");
+    tbody.innerHTML = "";
+    data.forEach((item) => {
+      const medal =
+        item.rank === 1
+          ? "1st"
+          : item.rank === 2
+          ? "2nd"
+          : item.rank === 3
+          ? "3rd"
+          : item.rank;
+      const rowClass = item.rank <= 3 ? "table-success fw-bold" : "";
+      tbody.innerHTML += `
+        <tr class="${rowClass}">
+          <td class="text-center fs-4">${medal}</td>
+          <td>${item.shipper}</td>
+          <td class="text-end font-monospace fw-bold">${fmt.format(
+            item.total_cod
+          )}</td>
+        </tr>`;
+    });
+  }
+
+  async function addMoney(amount) {
+    const code =
+      document.getElementById("shipper-code").value.trim() || "SHP001";
+    await fetch("/redis/leaderboard/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shipper_code: code, amount }),
+    });
+    loadLeaderboard();
+  }
+
+  // === HISTORY ===
+  async function loadHistory() {
+    const res = await fetch("/redis/history/get");
+    const data = await res.json();
+    document.getElementById("history-list").innerHTML = data
+      .map(
+        (code) => `
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>Đơn hàng: ${code}</span>
+        <span class="badge bg-primary rounded-pill">Mới</span>
+      </li>
+    `
+      )
+      .join("");
+  }
+
+  function pushRandomOrder() {
+    const code = "ORD" + Math.floor(Math.random() * 999999);
+    fetch("/redis/history/push", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order_code: code }),
+    }).then(loadHistory);
+  }
+
+  // === NOTIFICATIONS ===
+  async function loadNotifications() {
+    const res = await fetch("/redis/notify/unread/demo_user");
+    const json = await res.json();
+    document.getElementById("notif-list").innerHTML = json.notifications
+      .slice(0, 10)
+      .map(
+        (n) => `
+      <li class="list-group-item small">${n.message}</li>
+    `
+      )
+      .join("");
+  }
+
+  function sendNotification() {
+    const msg = document.getElementById("notif-msg").value.trim();
+    if (!msg) return;
+    fetch("/redis/notify/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg }),
+    }).then(() => {
+      document.getElementById("notif-msg").value = "";
+      document.getElementById("toast-body").textContent = msg;
+      const toast = document.getElementById("live-toast");
+      toast.style.display = "block";
+      setTimeout(() => (toast.style.display = "none"), 4000);
+      loadNotifications();
+    });
+  }
+
+  // INIT
+  loadNearby();
+  loadLeaderboard();
+  loadHistory();
+  loadNotifications();
+  setInterval(() => {
+    loadLeaderboard();
+    loadHistory();
+    loadNotifications();
+  }, 3000);
+
+  // Enter để gửi thông báo
+  document.getElementById("notif-msg").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendNotification();
+  });
+</script>
+
+{% endblock %}

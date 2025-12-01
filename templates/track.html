@@ -1,0 +1,108 @@
+{% extends "layout.html" %} {% block content %}
+<h3>Track Order</h3>
+
+<!-- Search Form -->
+<form class="mb-3" action="/track" method="get">
+  <div class="input-group">
+    <input
+      name="code"
+      class="form-control"
+      placeholder="Enter tracking code"
+      value="{{ code or '' }}"
+    />
+    <button class="btn btn-primary">Search</button>
+  </div>
+</form>
+
+{% if order %}
+<div class="row">
+  <div class="col-md-6">
+    <!-- Order Info -->
+    <div class="card mb-3 p-3">
+      <h5>Order {{ order.order_code }}</h5>
+      <p>
+        <strong>Recipient:</strong>
+        {{ order.recipient_info.name if order.recipient_info else 'N/A' }} ({{
+        order.recipient_info.phone if order.recipient_info else 'N/A' }})
+      </p>
+      <p>
+        <strong>Address:</strong>
+        {{ order.recipient_info.address if order.recipient_info else 'N/A' }}
+      </p>
+      <p>
+        <strong>Service:</strong>
+        {{ order.service.name if order.service else 'N/A' }}
+      </p>
+      <p><strong>Status:</strong> {{ order.current_status or 'N/A' }}</p>
+    </div>
+
+    <!-- Shipment Timeline -->
+    {% if shipment and shipment.status_history %}
+    <h5>Shipment Timeline</h5>
+    <ul class="list-group timeline-list">
+      {% for s in shipment.status_history %}
+      <li class="list-group-item">
+        <b>{{ s.status_code }}</b> - {{ s.description or '' }}<br />
+        <small
+          >{{ s.timestamp.strftime("%Y-%m-%d %H:%M:%S") if s.timestamp else
+          'N/A' }}</small
+        >
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="alert alert-warning">No shipment found for this order.</div>
+    {% endif %}
+  </div>
+
+  <div class="col-md-6">
+    <!-- Map showing shipment / shipper location -->
+    <h5>Shipment Map</h5>
+    <div id="map" style="height: 400px; border-radius: 10px"></div>
+  </div>
+</div>
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  const map = L.map('map').setView([21.0278, 105.8342], 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+  {% if shipment and shipment.current_location and shipment.current_location.coordinates %}
+  const coords = [
+    {{ shipment.current_location.coordinates[1] }},
+    {{ shipment.current_location.coordinates[0] }}
+  ];
+  const marker = L.marker(coords).addTo(map)
+    .bindPopup(`<b>Shipment {{ order.order_code }}</b><br>Current Status: {{ order.current_status }}`).openPopup();
+  map.setView(coords, 14);
+  {% endif %}
+
+  {% if shipment and shipment.status_history %}
+  const route = [];
+  {% for s in shipment.status_history %}
+    {% if s.location and s.location.coordinates %}
+  route.push([{{ s.location.coordinates[1] }}, {{ s.location.coordinates[0] }}]);
+    {% endif %}
+  {% endfor %}
+
+  if(route.length){
+    const polyline = L.polyline(route, {color:'blue'}).addTo(map);
+    map.fitBounds(polyline.getBounds());
+  }
+  {% endif %}
+</script>
+
+{% else %}
+<div class="alert alert-info">Enter a tracking code to search.</div>
+{% endif %}
+
+<style>
+  }
+</style>
+
+{% endblock %}

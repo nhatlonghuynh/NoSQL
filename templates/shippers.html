@@ -1,0 +1,92 @@
+{% extends "layout.html" %} {% block content %}
+<h3>Shippers</h3>
+<div class="row">
+  <div class="col-md-4 mb-3">
+    <input
+      type="text"
+      id="search-input"
+      class="form-control mb-2"
+      placeholder="Search shippers by name/phone..."
+    />
+    <ul class="list-group" id="shipper-list">
+      {% for s in shippers %}
+      <li
+        class="list-group-item list-group-item-action"
+        {%
+        if
+        s.current_location
+        and
+        s.current_location.coordinates
+        %}
+        data-lat="{{ s.current_location.coordinates[1] }}"
+        data-lng="{{ s.current_location.coordinates[0] }}"
+        {%
+        endif
+        %}
+      >
+        <b>{{ s.full_name }}</b><br />{{ s.phone_number }} {% if
+        s.post_office_info %}<br /><small>{{ s.post_office_info.name }}</small
+        >{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="col-md-8">
+    <div id="map" style="height: 600px; border-radius: 10px"></div>
+  </div>
+</div>
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<script>
+  const map = L.map("map").setView([21.0278, 105.8342], 6);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+  }).addTo(map);
+
+  // Marker Cluster
+  const markers = L.markerClusterGroup();
+  const listItems = document.querySelectorAll("#shipper-list li");
+
+  listItems.forEach((li, i) => {
+    if (!li.dataset.lat || !li.dataset.lng) return;
+
+    const lat = parseFloat(li.dataset.lat);
+    const lng = parseFloat(li.dataset.lng);
+    const marker = L.marker([lat, lng]).bindPopup(li.innerHTML);
+    markers.addLayer(marker);
+
+    // Click list item -> move map
+    li.addEventListener("click", () => {
+      map.setView([lat, lng], 16);
+      marker.openPopup();
+    });
+  });
+
+  map.addLayer(markers);
+  if (markers.getLayers().length) map.fitBounds(markers.getBounds());
+
+  // Search filter live
+  document.getElementById("search-input").addEventListener("input", (e) => {
+    const query = e.target.value.toLowerCase();
+    listItems.forEach((li) => {
+      li.style.display = li.innerText.toLowerCase().includes(query)
+        ? ""
+        : "none";
+    });
+  });
+</script>
+{% endblock %}

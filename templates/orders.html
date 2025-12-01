@@ -1,0 +1,427 @@
+{% extends "layout.html" %} {% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+  <div>
+    <h3 class="text-primary fw-bold mb-0">
+      <i class="bi bi-box-seam"></i> Quản lý Vận đơn
+    </h3>
+    <p class="text-muted small mb-0">
+      Theo dõi và xử lý nhanh trạng thái đơn hàng
+    </p>
+  </div>
+  <a href="/orders/new" class="btn btn-success shadow-sm">
+    <i class="bi bi-plus-lg"></i> Tạo đơn hàng mới
+  </a>
+</div>
+
+<div class="card shadow-sm mb-4 border-0">
+  <div class="card-body bg-light rounded">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label small fw-bold text-muted">Từ khóa</label>
+        <div class="input-group">
+          <span class="input-group-text bg-white"
+            ><i class="bi bi-search"></i
+          ></span>
+          <input
+            id="search-input"
+            class="form-control"
+            placeholder="Mã đơn / Tên / SĐT..."
+          />
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label small fw-bold text-muted"
+          >Lọc theo Trạng thái</label
+        >
+        <select id="status-filter" class="form-select">
+          <option value="">Tất cả trạng thái</option>
+          <option value="PENDING_PICKUP">Chờ lấy hàng</option>
+          <option value="PICKED_UP">Đã lấy hàng</option>
+          <option value="IN_TRANSIT">Đang luân chuyển</option>
+          <option value="DELIVERING">Đang giao hàng</option>
+          <option value="DELIVERED">Giao thành công</option>
+          <option value="CANCELLED">Đã hủy</option>
+        </select>
+      </div>
+
+      <div class="col-md-5">
+        <label class="form-label small fw-bold text-muted"
+          >Tiền thu hộ (COD)</label
+        >
+        <div class="input-group">
+          <input
+            type="number"
+            id="cod-min"
+            class="form-control"
+            placeholder="Min"
+          />
+          <span class="input-group-text">-</span>
+          <input
+            type="number"
+            id="cod-max"
+            class="form-control"
+            placeholder="Max"
+          />
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label small fw-bold text-muted">Ngày tạo từ</label>
+        <input type="date" id="date-from" class="form-control" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small fw-bold text-muted">Đến ngày</label>
+        <input type="date" id="date-to" class="form-control" />
+      </div>
+
+      <div class="col-md-4 d-flex align-items-end">
+        <button id="search-btn" class="btn btn-primary w-100">
+          <i class="bi bi-funnel"></i> Lọc dữ liệu
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="spinner" class="text-center my-5" style="display: none">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Đang tải...</span>
+  </div>
+  <p class="text-muted mt-2">Đang tải dữ liệu...</p>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-secondary">
+          <tr>
+            <th class="ps-4">Mã vận đơn</th>
+            <th>Người gửi</th>
+            <th>Người nhận</th>
+            <th>Trạng thái (Sửa nhanh)</th>
+            <th class="text-end">Thu hộ (COD)</th>
+            <th class="text-end">Giá trị hàng</th>
+            <th>Ngày tạo</th>
+            <th class="text-center" style="min-width: 160px">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="orders-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card-footer bg-white border-0 py-3">
+    <nav>
+      <ul class="pagination justify-content-center mb-0" id="pagination"></ul>
+    </nav>
+  </div>
+</div>
+
+<script>
+  let currentPage = 1;
+  let currentLimit = 10;
+
+  // Cấu hình danh sách trạng thái để tạo Dropdown
+  const STATUS_LIST = [
+    { value: "PENDING_PICKUP", text: "Chờ lấy hàng" },
+    { value: "PICKED_UP", text: "Đã lấy hàng" },
+    { value: "IN_TRANSIT", text: "Đang luân chuyển" },
+    { value: "DELIVERING", text: "Đang giao hàng" },
+    { value: "DELIVERED", text: "Giao thành công" },
+    { value: "CANCELLED", text: "Đã hủy" },
+  ];
+
+  // Helper: Format tiền tệ
+  const formatMoney = (amount) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount || 0);
+  };
+
+  // Helper: Lấy class màu sắc dựa trên status
+  const getStatusColorClass = (status) => {
+    const map = {
+      PENDING_PICKUP: "text-warning border-warning bg-light",
+      PICKED_UP: "text-info border-info bg-light",
+      IN_TRANSIT: "text-primary border-primary bg-light",
+      DELIVERING: "text-primary border-primary bg-light",
+      DELIVERED: "text-success border-success bg-light",
+      CANCELLED: "text-danger border-danger bg-light",
+    };
+    return map[status] || "text-secondary border-secondary";
+  };
+
+  // --- COMPONENT: RENDER STATUS SELECT (QUICK EDIT) ---
+  const renderStatusSelect = (orderId, currentStatus) => {
+    // Tạo options cho select
+    let optionsHtml = STATUS_LIST.map(
+      (s) =>
+        `<option value="${s.value}" ${
+          s.value === currentStatus ? "selected" : ""
+        }>${s.text}</option>`
+    ).join("");
+
+    const colorClass = getStatusColorClass(currentStatus);
+
+    // Trả về HTML select với onchange event
+    return `
+        <select 
+            class="form-select form-select-sm status-select ${colorClass}" 
+            onchange="updateStatus('${orderId}', this, '${currentStatus}')"
+            onclick="event.stopPropagation();" 
+        >
+            ${optionsHtml}
+        </select>
+      `;
+  };
+
+  // --- LOGIC: UPDATE STATUS API ---
+  async function updateStatus(orderId, selectElem, oldStatus) {
+    const newStatus = selectElem.value;
+
+    // UX: Disable tạm thời để user không spam click
+    selectElem.disabled = true;
+    const originalClass = selectElem.className; // Lưu class cũ
+
+    try {
+      const res = await fetch(`/api/orders/${orderId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Không thể cập nhật trạng thái này");
+      }
+
+      // THÀNH CÔNG: Update giao diện
+      // 1. Đổi màu select box sang màu trạng thái mới
+      selectElem.className = `form-select form-select-sm status-select ${getStatusColorClass(
+        newStatus
+      )}`;
+
+      // 2. Cập nhật lại thuộc tính onchange để 'oldStatus' trở thành 'newStatus' (cho lần sửa sau)
+      selectElem.setAttribute(
+        "onchange",
+        `updateStatus('${orderId}', this, '${newStatus}')`
+      );
+
+      // (Option) Có thể thêm Toast notification tại đây nếu muốn
+    } catch (err) {
+      alert(`Lỗi: ${err.message}`);
+      // THẤT BẠI: Revert về giá trị cũ
+      selectElem.value = oldStatus;
+      selectElem.className = originalClass;
+    } finally {
+      selectElem.disabled = false;
+    }
+  }
+
+  // --- CORE: LOAD ORDERS ---
+  async function loadOrders(page = 1) {
+    currentPage = page;
+    showSpinner(true);
+
+    const q = document.getElementById("search-input").value.trim();
+    const status = document.getElementById("status-filter").value;
+    const cod_min = document.getElementById("cod-min").value;
+    const cod_max = document.getElementById("cod-max").value;
+    const date_from = document.getElementById("date-from").value;
+    const date_to = document.getElementById("date-to").value;
+
+    const params = new URLSearchParams({ page, limit: currentLimit });
+    if (q) params.set("q", q);
+    if (status) params.set("status", status);
+    if (cod_min) params.set("cod_min", cod_min);
+    if (cod_max) params.set("cod_max", cod_max);
+    if (date_from) params.set("date_from", date_from);
+    if (date_to) params.set("date_to", date_to);
+
+    try {
+      const res = await fetch("/api/orders?" + params.toString());
+      if (!res.ok) throw new Error("Lỗi kết nối server");
+      const payload = await res.json();
+      const tbody = document.getElementById("orders-tbody");
+      tbody.innerHTML = "";
+
+      if (!payload.data || payload.data.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                    Không tìm thấy đơn hàng nào phù hợp
+                </td>
+            </tr>`;
+        renderPagination(payload.page || 1, payload.pages || 1);
+        return;
+      }
+
+      payload.data.forEach((o) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+        <td class="ps-4 fw-bold text-primary">
+            <a href="/orders/edit/${o._id}" class="text-decoration-none">${
+          o.order_code
+        }</a>
+        </td>
+        <td>
+            <div class="fw-bold">${o.sender_info?.name || "---"}</div>
+            <div class="small text-muted">${o.sender_info?.phone || ""}</div>
+        </td>
+        <td>
+            <div class="fw-bold">${o.recipient_info?.name || "---"}</div>
+            <div class="small text-muted">${o.recipient_info?.phone || ""}</div>
+        </td>
+        
+        <td>${renderStatusSelect(o._id, o.current_status)}</td>
+        
+        <td class="text-end fw-bold">${formatMoney(
+          o.financials?.cod_amount
+        )}</td>
+        <td class="text-end text-muted">${formatMoney(
+          o.parcel?.declared_value
+        )}</td>
+        <td class="small text-muted">${o.created_at || ""}</td>
+        
+        <td class="text-center align-middle">
+             <div class="d-flex justify-content-center gap-2">
+                <a href="/orders/edit/${o._id}" 
+                   class="btn btn-sm btn-primary btn-action" 
+                   title="Chỉnh sửa chi tiết">
+                   <i class="bi bi-pencil-fill"></i> <span class="d-none d-xl-inline ms-1">Sửa</span>
+                </a>
+                <button class="btn btn-sm btn-danger btn-action" 
+                        onclick="deleteOrder('${o._id}', this)" 
+                        title="Xóa đơn hàng">
+                    <i class="bi bi-trash-fill"></i> <span class="d-none d-xl-inline ms-1">Xóa</span>
+                </button>
+            </div>
+        </td>
+      `;
+        tbody.appendChild(tr);
+      });
+
+      renderPagination(payload.page, payload.pages);
+    } catch (err) {
+      console.error(err);
+      document.getElementById("orders-tbody").innerHTML =
+        '<tr><td colspan="8" class="text-center text-danger py-4">Có lỗi xảy ra khi tải dữ liệu</td></tr>';
+    } finally {
+      showSpinner(false);
+    }
+  }
+
+  // --- LOGIC: DELETE ORDER ---
+  async function deleteOrder(id, btn) {
+    if (
+      !confirm(
+        "Bạn có chắc chắn muốn xóa đơn hàng này không?\nHành động này sẽ đưa đơn vào thùng rác."
+      )
+    )
+      return;
+
+    // UX: Disable nút khi đang xử lý
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+    try {
+      const res = await fetch("/api/orders/" + id, { method: "DELETE" });
+      if (!res.ok) throw new Error("Xóa thất bại");
+
+      const row = btn.closest("tr");
+      row.style.transition = "all 0.5s";
+      row.style.opacity = "0";
+      setTimeout(() => row.remove(), 500);
+    } catch (err) {
+      alert("Lỗi: Không thể xóa đơn hàng.");
+      btn.disabled = false;
+      btn.innerHTML = originalContent;
+    }
+  }
+
+  // --- UTILS ---
+  function showSpinner(show) {
+    document.getElementById("spinner").style.display = show ? "block" : "none";
+    document.getElementById("orders-tbody").style.display = show
+      ? "none"
+      : "table-row-group";
+  }
+
+  function debounce(fn, delay) {
+    let timer;
+    return function (...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
+
+  function renderPagination(page, pages) {
+    const ul = document.getElementById("pagination");
+    ul.innerHTML = "";
+    if (pages <= 1) return;
+
+    const createItem = (p, text, isDisabled, isActive) => {
+      const li = document.createElement("li");
+      li.className = `page-item ${isDisabled ? "disabled" : ""} ${
+        isActive ? "active" : ""
+      }`;
+      li.innerHTML = `<a class="page-link" href="#" onclick="gotoPage(${p});return false;">${text}</a>`;
+      ul.appendChild(li);
+    };
+
+    createItem(page - 1, "&laquo;", page <= 1, false);
+    const start = Math.max(1, page - 2);
+    const end = Math.min(pages, page + 2);
+    for (let p = start; p <= end; p++) {
+      createItem(p, p, false, p === page);
+    }
+    createItem(page + 1, "&raquo;", page >= pages, false);
+  }
+
+  function gotoPage(p) {
+    loadOrders(p);
+  }
+
+  // --- EVENT LISTENERS ---
+  document
+    .getElementById("search-btn")
+    .addEventListener("click", () => gotoPage(1));
+  document.getElementById("search-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      gotoPage(1);
+    }
+  });
+
+  [
+    "status-filter",
+    "cod-min",
+    "cod-max",
+    "date-from",
+    "date-to",
+    "search-input",
+  ].forEach((id) => {
+    document.getElementById(id).addEventListener(
+      "input",
+      debounce(() => gotoPage(1), 500)
+    );
+    document.getElementById(id).addEventListener(
+      "change",
+      debounce(() => gotoPage(1), 500)
+    );
+  });
+
+  document.addEventListener("DOMContentLoaded", () => loadOrders(1));
+</script>
+
+<style>
+  /* Base styles */
+  
+</style>
+{% endblock %}
